@@ -1,11 +1,16 @@
 ﻿using Domain.Login.Entities;
 using Domain.Usuario.Entidades;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Domain.Usuario.Interfaces
 {
     public interface IUsuario
     {
-        Task<Usuarios> GetUsuarioAsync(LoginEntry loginEntry);
+        void Add(Usuarios usuario);
+        Task<IEnumerable<Usuarios>> GetList();
+        Task<Usuarios> GetById(int id);
+        void Update(Usuarios usuario);
+        void Remove(Usuarios usuario);
     }
 }

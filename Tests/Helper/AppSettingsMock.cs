@@ -31,7 +31,7 @@ namespace Tests.Helper
 
         public DbContextOptions<ApplicationDbContext> OptionsDatabaseStub()
         {
-            const string defaultConnectionString = "Data Source=DESKTOP-F9M2LAN\\SQLEXPRESS;User ID=sa;Password=Fern@nd01331;Database=PeopleBasePraticle;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+            const string defaultConnectionString = "Data Source=localhost;User ID=sa;Password=Fern@nd01331;Database=PeopleBasePraticle;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseSqlServer(defaultConnectionString)
