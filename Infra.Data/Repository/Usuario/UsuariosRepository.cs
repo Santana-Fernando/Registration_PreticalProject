@@ -34,7 +34,7 @@ namespace Infra.Data.Repository.Usuario
 
         public void Update(Usuarios usuario)
         {
-            _context.Add(usuario);
+            _context.Update(usuario);
             _context.SaveChanges();
         }
 
