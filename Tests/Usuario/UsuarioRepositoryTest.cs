@@ -7,7 +7,6 @@ using Infra.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using Moq;
-using Infra.Data.Context.Helpers;
 using Tests.Helper;
 using Infra.Data.Repository.Usuario;
 using Domain.Usuario.Entidades;
@@ -66,7 +65,7 @@ namespace Tests.Usuario
         [Fact]
         public async Task UsuarioRepository_ShouldCallFunctionGetById()
         {
-            _output.WriteLine("Should call the function GetList");
+            _output.WriteLine("Should call the function GetById");
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -84,9 +83,29 @@ namespace Tests.Usuario
         }
 
         [Fact]
+        public async Task UsuarioRepository_ShouldCallFunctionGetByEmail()
+        {
+            _output.WriteLine("Should call the function GetByEmail");
+
+            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                var usuario = await _usuariosRepository.GetByEmail("fernando@gmail.com");
+
+                Assert.NotNull(usuario);
+                Assert.True(usuario.email == "fernando@gmail.com");
+            }
+            finally
+            {
+                await transaction.RollbackAsync();
+            }
+        }
+
+        [Fact]
         public async Task UsuarioRepository_ShouldCallFunctionGetList()
         {
-            _output.WriteLine("Should call the function GetById");
+            _output.WriteLine("Should call the function GetList");
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             var usuarios = new List<Usuarios>

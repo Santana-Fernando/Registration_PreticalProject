@@ -7,8 +7,8 @@ using Infra.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using Moq;
-using Infra.Data.Context.Helpers;
 using Tests.Helper;
+using Application.Helpers;
 
 namespace Tests.Login
 {

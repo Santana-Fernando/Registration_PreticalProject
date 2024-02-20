@@ -5,7 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 
-namespace Infra.Data.Context.Helpers
+namespace Application.Helpers
 {
     public class TokenAuthentication
     {

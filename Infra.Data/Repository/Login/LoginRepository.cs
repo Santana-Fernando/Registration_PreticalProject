@@ -1,14 +1,12 @@
 ﻿using Domain.Entities;
 using Domain.Login.Entities;
 using Infra.Data.Context;
-using Infra.Data.Context.Helpers;
 using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Identity;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Application.Http;
+using Application.Helpers;
 
 namespace Infra.Data.Repository.Login
 {

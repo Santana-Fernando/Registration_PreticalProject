@@ -27,6 +27,11 @@ namespace Infra.Data.Repository.Usuario
             return await _context.Usuarios.FindAsync(id);
         }
 
+        public async Task<Usuarios> GetByEmail(string email)
+        {
+            return await _context.Usuarios.SingleOrDefaultAsync(u => u.email == email);
+        }
+
         public async Task<IEnumerable<Usuarios>> GetList()
         {
             return await _context.Usuarios.ToListAsync();

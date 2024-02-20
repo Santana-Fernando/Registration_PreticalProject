@@ -10,6 +10,7 @@ namespace Domain.Usuario.Interfaces
         void Add(Usuarios usuario);
         Task<IEnumerable<Usuarios>> GetList();
         Task<Usuarios> GetById(int id);
+        Task<Usuarios> GetByEmail(string email);
         void Update(Usuarios usuario);
         void Remove(Usuarios usuario);
     }

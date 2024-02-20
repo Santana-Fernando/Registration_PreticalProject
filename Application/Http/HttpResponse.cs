@@ -1,5 +1,8 @@
 ﻿using Domain.Login.Entities;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Application.Http
@@ -39,7 +42,7 @@ namespace Application.Http
         {
             return new Autenticacao()
             {
-                statusCode = System.Net.HttpStatusCode.NotFound,
+                statusCode = HttpStatusCode.NotFound,
                 message = "Not Found"
             };
         }
@@ -48,8 +51,17 @@ namespace Application.Http
         {
             return new Autenticacao()
             {
-                statusCode = System.Net.HttpStatusCode.InternalServerError,
+                statusCode = HttpStatusCode.InternalServerError,
                 message = message
+            };
+        }
+
+        public HttpResponseMessage Response(HttpStatusCode status, StringContent? messages, string reasonPhrase)
+        {
+            return new HttpResponseMessage(status)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(messages)),
+                ReasonPhrase = reasonPhrase
             };
         }
     }
