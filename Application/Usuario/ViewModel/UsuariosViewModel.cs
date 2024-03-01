@@ -28,13 +28,13 @@ namespace Application.Usuario.ViewModel
         [MinLength(6)]
         [MaxLength(10)]
         [DisplayName("Password")]
-        public string password { get; set; }
+        public string? password { get; set; }
 
         [Required(ErrorMessage = "The Password need to be confirmed")]
         [MinLength(6)]
         [MaxLength(10)]
         [DisplayName("Confirmed password")]
         [Compare("password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string passwordConfirmation { get; set; }
+        public string? passwordConfirmation { get; set; }
     }
 }

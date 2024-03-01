@@ -11,7 +11,7 @@ namespace Application.Mapping
         public ViewModelToDomainMappingProfile()
         {
             CreateMap<LoginEntryViewModel, LoginEntry>();
-            CreateMap<UsuariosViewModel, Usuarios>()
+            CreateMap<UsuariosViewModel, Usuarios>()            
             .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
             .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
             .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));

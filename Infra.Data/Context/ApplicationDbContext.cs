@@ -10,8 +10,8 @@ namespace Infra.Data.Context
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
-            {
-            }
+        {
+        }
 
         public DbSet<Usuarios> Usuarios { get; set; }
 

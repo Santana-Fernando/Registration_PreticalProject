@@ -1,8 +1,12 @@
 ﻿using Application.Login.Interfaces;
 using Application.Login.Services;
+using Application.Usuario.Interfaces;
+using Application.Usuario.Services;
 using Domain.Entities;
+using Domain.Usuario.Interfaces;
 using Infra.Data.Context;
 using Infra.Data.Repository.Login;
+using Infra.Data.Repository.Usuario;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +28,8 @@ namespace Infra.IoC
 
             services.AddScoped<ILogin, LoginRepository>();
             services.AddScoped<ILoginServices, LoginServices>();
+            services.AddScoped<IUsuario, UsuariosRepository>();
+            services.AddScoped<IUsuarioServices, UsuarioServices>();
 
             return services;
         }

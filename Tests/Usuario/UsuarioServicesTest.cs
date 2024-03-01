@@ -23,7 +23,6 @@ namespace Tests.Usuario
         private readonly ITestOutputHelper _output;
         private readonly UsuarioServices _usuariosService;
         private readonly UsuariosRepository _usuariosRepository;
-        private readonly ApplicationDbContext _dbContext;
         private readonly Mock<IMapper> _mapperMock;
 
         public UsuarioServicesTest(ITestOutputHelper output)
@@ -42,6 +41,33 @@ namespace Tests.Usuario
             var options = appSettingsMock.OptionsDatabaseStub();
             var dbContext = new ApplicationDbContext(options);
             return new UsuariosRepository(dbContext);
+        }
+
+        private void RemoverAllUsers()
+        {
+            AppSettingsMock appSettingsMock = new AppSettingsMock();
+            var options = appSettingsMock.OptionsDatabaseStub();
+            
+            using (var dbContext = new ApplicationDbContext(options))
+            {
+                var usuariosParaRemover = dbContext.Usuarios.Where(u => u.id != 1).ToList();
+
+                var usuario = new Usuarios
+                {
+                    id = 1,
+                    name = "Fernando",
+                    email = "fernando@gmail.com",
+                    password = "$2a$10$e/IZDBCPryoa6XMwowkItuVWAeZmYOH1RiinVrcHVTm560uGIaUa2"
+                };
+
+                if (usuariosParaRemover.Any())
+                {
+                    dbContext.Usuarios.RemoveRange(usuariosParaRemover);
+                    dbContext.Usuarios.Update(usuario);
+                    dbContext.Database.ExecuteSqlRaw($"DBCC CHECKIDENT ('Usuarios', RESEED, 1)");
+                    dbContext.SaveChanges();
+                }
+            }
         }
 
         #region ValidateFields
@@ -290,7 +316,6 @@ namespace Tests.Usuario
         }
         #endregion
 
-        #region ValidateFields
         [Fact]
         public void UsuarioServices_ShouldCallTheFunctionAdd()
         {
@@ -350,6 +375,7 @@ namespace Tests.Usuario
             Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
 
         }
+
         [Fact]
         public void UsuarioServices_ShouldReturnInternalServerErrorIfProcessFalied()
         {
@@ -363,7 +389,7 @@ namespace Tests.Usuario
                 passwordConfirmation = "123456"
             };
 
-            var mappedUsuarios = new Usuarios
+            var mappedUsuarios = new Usuarios()
             {
                 name = "fernando",
                 email = "fer@gmail.com",
@@ -380,7 +406,7 @@ namespace Tests.Usuario
         }
 
         [Fact]
-        public async void UsuarioServices_ShouldReturnOkIfIdAllOk()
+        public void UsuarioServices_ShouldReturnOkIfIdAllOk()
         {
             _output.WriteLine("Should return ok if is all ok");
 
@@ -392,7 +418,7 @@ namespace Tests.Usuario
                 passwordConfirmation = "123456"
             };
 
-            var mappedUsuarios = new Usuarios
+            var mappedUsuarios = new Usuarios()
             {
                 name = "fernando",
                 email = "fer@gmail.com",
@@ -405,10 +431,171 @@ namespace Tests.Usuario
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
 
-            var usuarioRemovido = await _usuariosRepository.GetByEmail("fer@gmail.com");
-            _usuariosRepository.Remove(usuarioRemovido);
+            RemoverAllUsers();
         }
-        #endregion
+
+        [Fact]
+        public async void UsuarioServices_ShouldCallGetByIdAndReturnAUser()
+        {
+            _output.WriteLine("Should call GetById and return a user");
+
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<UsuariosViewModel, Usuarios>()
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
+                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
+
+                cfg.CreateMap<Usuarios, UsuariosViewModel>()
+                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
+            });
+
+            var mapper = config.CreateMapper();
+            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
+
+            var result = await usuariosService.GetById(1);
+            Assert.NotNull(result);
+            Assert.Equal(1, result.id);
+            Assert.Equal("Fernando", result.name);
+            Assert.Equal("fernando@gmail.com", result.email);
+        }
+
+        [Fact]
+        public async void UsuarioServices_ShouldCallGetListdAndReturnAUserList()
+        {
+            RemoverAllUsers();
+            _output.WriteLine("Should call GetList and return a users list");
+
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<UsuariosViewModel, Usuarios>()
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
+                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
+
+                cfg.CreateMap<Usuarios, UsuariosViewModel>()
+                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
+            });
+
+            var lstUsuario = new List<Usuarios>
+            {
+                new Usuarios()
+                {
+                    name = "fernando1",
+                    email = "fer@gmail.com",
+                    password = "123456"
+                },
+                new Usuarios()
+                {
+                    name = "fernando2",
+                    email = "fer2@gmail.com",
+                    password = "123456",
+                },
+                new Usuarios()
+                {
+                    name = "fernando3",
+                    email = "fer3@gmail.com",
+                    password = "123456",
+                },
+            };
+
+            foreach (var usuarioTeste in lstUsuario)
+            {
+                _usuariosRepository.Add(usuarioTeste);
+            }
+
+            var mapper = config.CreateMapper();
+            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
+
+            var result = await usuariosService.GetList();
+            Assert.NotNull(result);
+            Assert.Equal(4, result.Count());
+
+            RemoverAllUsers();
+        }
+
+        [Fact]
+        public async void UsuarioServices_ShouldCallUpdate()
+        {
+           _output.WriteLine("Should call Update and update user");
+
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<UsuariosViewModel, Usuarios>()
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
+                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
+
+                cfg.CreateMap<Usuarios, UsuariosViewModel>()
+                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
+            });
+
+            
+            var mapper = config.CreateMapper();
+            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
+
+            var usuario = await usuariosService.GetById(1);
+
+            usuario.name = "santana";
+
+            var statusReturn = usuariosService.Update(usuario);
+
+            var result = await usuariosService.GetById(usuario.id);
+
+            Assert.NotNull(result);
+            Assert.Equal("santana", result.name);
+            Assert.Equal(System.Net.HttpStatusCode.OK, statusReturn.StatusCode);
+
+            result.name = "Fernando";
+            usuariosService.Update(result);
+
+        }
+
+        [Fact]
+        public async void UsuarioServices_ShouldCallAndRemoveUser()
+        {
+            RemoverAllUsers();
+            _output.WriteLine("Should Call and Remove user");
+
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<UsuariosViewModel, Usuarios>()
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
+                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
+
+                cfg.CreateMap<Usuarios, UsuariosViewModel>()
+                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
+            });
+
+            var usuario = new UsuariosViewModel()
+            {
+                name = "santanaFinal",
+                email = "santana@gmail.com",
+                password = "123456",
+                passwordConfirmation = "123456"
+            };
+
+            var mapper = config.CreateMapper();
+            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
+
+            usuariosService.Add(usuario);
+
+            var usuarioAdicionado = await _usuariosRepository.GetByEmail("santana@gmail.com");
+            Assert.NotNull(usuarioAdicionado);
+
+            var usuarioParaRemover = mapper.Map<UsuariosViewModel>(usuarioAdicionado);
+            var result = usuariosService.Remove(usuarioParaRemover);
+
+            Assert.NotNull(result);
+            Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
+
+            RemoverAllUsers();
+        }
     }
 }
  
