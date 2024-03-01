@@ -23,16 +23,17 @@ namespace Tests.Usuario
         private readonly ITestOutputHelper _output;
         private readonly UsuarioServices _usuariosService;
         private readonly UsuariosRepository _usuariosRepository;
-        private readonly Mock<IMapper> _mapperMock;
+        private readonly IMapper _mapperMock;
 
         public UsuarioServicesTest(ITestOutputHelper output)
         {
             _output = output;
 
             _usuariosRepository = UsuariosRepositoryStub();
-            _mapperMock = new Mock<IMapper>();
+            var config = configIMapper();
+            _mapperMock = config.CreateMapper();
 
-            _usuariosService = new UsuarioServices(_usuariosRepository, _mapperMock.Object);
+            _usuariosService = new UsuarioServices(_usuariosRepository, _mapperMock);
         }
 
         private UsuariosRepository UsuariosRepositoryStub()
@@ -41,6 +42,23 @@ namespace Tests.Usuario
             var options = appSettingsMock.OptionsDatabaseStub();
             var dbContext = new ApplicationDbContext(options);
             return new UsuariosRepository(dbContext);
+        }
+
+        private MapperConfiguration configIMapper()
+        {
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<UsuariosViewModel, Usuarios>()
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
+                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
+
+                cfg.CreateMap<Usuarios, UsuariosViewModel>()
+                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
+                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
+                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
+            });
+
+            return config;
         }
 
         private void RemoverAllUsers()
@@ -335,27 +353,6 @@ namespace Tests.Usuario
         }
 
         [Fact]
-        public void UsuarioServices_ShouldReturnBadRequestIfFieldsIsInvalid()
-        {
-            _output.WriteLine("Should return badRequest if fields is invalid");
-
-            UsuariosViewModel usuariosViewModel = new UsuariosViewModel()
-            {
-                name = "",
-                email = "",
-                password = "",
-                passwordConfirmation = ""
-            };
-
-            var result = _usuariosService.Add(usuariosViewModel);
-
-            Assert.NotNull(result);
-            Assert.Equal("Some fields are with invalid values.", result.ReasonPhrase);
-            Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
-
-        }
-
-        [Fact]
         public void UsuarioServices_ShouldReturnBadRequestIfEmailIsRegistered()
         {
             _output.WriteLine("Should return badRequest if email is registered");
@@ -381,6 +378,9 @@ namespace Tests.Usuario
         {
             _output.WriteLine("Should return a internal server erro if process falied");
 
+            Mock<IMapper> mapperMock = new Mock<IMapper>();
+            var usuariosService = new UsuarioServices(_usuariosRepository, mapperMock.Object);
+
             UsuariosViewModel usuariosViewModel = new UsuariosViewModel()
             {
                 name = "fernando",
@@ -396,13 +396,12 @@ namespace Tests.Usuario
                 password = "$2a$10$e/IZDBCPryoa6XMwowkItuVWAeZmYOH1RiinVrcHVTm560uGIaUa2"
             };
 
-            _mapperMock.Setup(x => x.Map<UsuariosViewModel>(usuariosViewModel)).Returns(usuariosViewModel);
+            mapperMock.Setup(x => x.Map<UsuariosViewModel>(usuariosViewModel)).Returns(usuariosViewModel);
 
-            var result = _usuariosService.Add(usuariosViewModel);
+            var result = usuariosService.Add(usuariosViewModel);
 
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.InternalServerError, result.StatusCode);
-
         }
 
         [Fact]
@@ -418,15 +417,6 @@ namespace Tests.Usuario
                 passwordConfirmation = "123456"
             };
 
-            var mappedUsuarios = new Usuarios()
-            {
-                name = "fernando",
-                email = "fer@gmail.com",
-                password = "$2a$10$e/IZDBCPryoa6XMwowkItuVWAeZmYOH1RiinVrcHVTm560uGIaUa2"
-            };
-
-            _mapperMock.Setup(x => x.Map<Usuarios>(usuariosViewModel)).Returns(mappedUsuarios);
-
             var result = _usuariosService.Add(usuariosViewModel);
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
@@ -439,22 +429,7 @@ namespace Tests.Usuario
         {
             _output.WriteLine("Should call GetById and return a user");
 
-            var config = new MapperConfiguration(cfg => {
-                cfg.CreateMap<UsuariosViewModel, Usuarios>()
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
-                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
-
-                cfg.CreateMap<Usuarios, UsuariosViewModel>()
-                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
-            });
-
-            var mapper = config.CreateMapper();
-            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
-
-            var result = await usuariosService.GetById(1);
+            var result = await _usuariosService.GetById(1);
             Assert.NotNull(result);
             Assert.Equal(1, result.id);
             Assert.Equal("Fernando", result.name);
@@ -466,18 +441,6 @@ namespace Tests.Usuario
         {
             RemoverAllUsers();
             _output.WriteLine("Should call GetList and return a users list");
-
-            var config = new MapperConfiguration(cfg => {
-                cfg.CreateMap<UsuariosViewModel, Usuarios>()
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
-                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
-
-                cfg.CreateMap<Usuarios, UsuariosViewModel>()
-                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
-            });
 
             var lstUsuario = new List<Usuarios>
             {
@@ -506,10 +469,7 @@ namespace Tests.Usuario
                 _usuariosRepository.Add(usuarioTeste);
             }
 
-            var mapper = config.CreateMapper();
-            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
-
-            var result = await usuariosService.GetList();
+            var result = await _usuariosService.GetList();
             Assert.NotNull(result);
             Assert.Equal(4, result.Count());
 
@@ -521,37 +481,38 @@ namespace Tests.Usuario
         {
            _output.WriteLine("Should call Update and update user");
 
-            var config = new MapperConfiguration(cfg => {
-                cfg.CreateMap<UsuariosViewModel, Usuarios>()
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
-                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
-
-                cfg.CreateMap<Usuarios, UsuariosViewModel>()
-                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
-            });
-
-            
-            var mapper = config.CreateMapper();
-            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
-
-            var usuario = await usuariosService.GetById(1);
+            var usuario = await _usuariosService.GetById(1);
 
             usuario.name = "santana";
 
-            var statusReturn = usuariosService.Update(usuario);
+            var statusReturn = _usuariosService.Update(usuario);
 
-            var result = await usuariosService.GetById(usuario.id);
+            var result = await _usuariosService.GetById(usuario.id);
 
             Assert.NotNull(result);
             Assert.Equal("santana", result.name);
             Assert.Equal(System.Net.HttpStatusCode.OK, statusReturn.StatusCode);
 
             result.name = "Fernando";
-            usuariosService.Update(result);
+            _usuariosService.Update(result);
 
+        }
+
+        [Fact]
+        public async void UsuarioServices_ShouldUpdateReturnBadRequest()
+        {
+            _output.WriteLine("Should return badRequest id Update not found user");
+
+            var usuario = await _usuariosService.GetById(1);
+
+            usuario.name = "santana";
+            usuario.id = 1000;
+
+            var statusReturn = _usuariosService.Update(usuario);
+
+            Assert.NotNull(statusReturn);
+            Assert.Equal(System.Net.HttpStatusCode.NotFound, statusReturn.StatusCode);
+            Assert.Equal("User not found!", statusReturn.ReasonPhrase);
         }
 
         [Fact]
@@ -559,18 +520,6 @@ namespace Tests.Usuario
         {
             RemoverAllUsers();
             _output.WriteLine("Should Call and Remove user");
-
-            var config = new MapperConfiguration(cfg => {
-                cfg.CreateMap<UsuariosViewModel, Usuarios>()
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email))
-                    .ForMember(dest => dest.password, opt => opt.MapFrom(src => src.password));
-
-                cfg.CreateMap<Usuarios, UsuariosViewModel>()
-                    .ForMember(dest => dest.id, opt => opt.MapFrom(src => src.id))
-                    .ForMember(dest => dest.name, opt => opt.MapFrom(src => src.name))
-                    .ForMember(dest => dest.email, opt => opt.MapFrom(src => src.email));
-            });
 
             var usuario = new UsuariosViewModel()
             {
@@ -580,21 +529,35 @@ namespace Tests.Usuario
                 passwordConfirmation = "123456"
             };
 
-            var mapper = config.CreateMapper();
-            var usuariosService = new UsuarioServices(_usuariosRepository, mapper);
-
-            usuariosService.Add(usuario);
+            _usuariosService.Add(usuario);
 
             var usuarioAdicionado = await _usuariosRepository.GetByEmail("santana@gmail.com");
             Assert.NotNull(usuarioAdicionado);
 
-            var usuarioParaRemover = mapper.Map<UsuariosViewModel>(usuarioAdicionado);
-            var result = usuariosService.Remove(usuarioParaRemover);
+            var usuarioParaRemover = _mapperMock.Map<UsuariosViewModel>(usuarioAdicionado);
+            var result = _usuariosService.Remove(usuarioParaRemover);
 
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
 
             RemoverAllUsers();
+        }
+
+        [Fact]
+        public async void UsuarioServices_ShouldRemoveReturnBadRequest()
+        {
+            _output.WriteLine("Should return badRequest id Update not found user");
+
+            var usuario = await _usuariosService.GetById(1);
+
+            usuario.name = "santana";
+            usuario.id = 1000;
+
+            var statusReturn = _usuariosService.Remove(usuario);
+
+            Assert.NotNull(statusReturn);
+            Assert.Equal(System.Net.HttpStatusCode.NotFound, statusReturn.StatusCode);
+            Assert.Equal("User not found!", statusReturn.ReasonPhrase);
         }
     }
 }

@@ -72,48 +72,35 @@ namespace Application.Usuario.Services
             return _mapper.Map<IEnumerable<UsuariosViewModel>>(usuarios);
         }
 
-        public HttpResponseMessage Remove(UsuariosViewModel usuario)
-        {
-            HttpResponse httpResponse = new HttpResponse();
-            try
-            {
-                var usuarioRemove = _usuarioRepository.GetById(usuario.id).Result;
-                if(usuarioRemove != null)
-                {
-                    _usuarioRepository.Remove(usuarioRemove);
-                    return httpResponse.Response(HttpStatusCode.OK, null, "OK");
-                }
-
-                return httpResponse.Response(HttpStatusCode.InternalServerError, null, "User not found");
-            }
-            catch (Exception ex)
-            {
-                return httpResponse.Response(HttpStatusCode.InternalServerError, new StringContent(JsonSerializer.Serialize(ex.Message)), "Internal server error");
-            }
-        }
-
         public HttpResponseMessage Update(UsuariosViewModel usuario)
         {
             HttpResponse httpResponse = new HttpResponse();
-
             var usuarioParaAtualizar = _usuarioRepository.GetById(usuario.id).Result;
-            try
+            
+            if(usuarioParaAtualizar != null)
             {
-                if(usuarioParaAtualizar != null)
-                {
-                    usuarioParaAtualizar.name = usuario.name;
-                    usuarioParaAtualizar.email = usuario.email;
+                usuarioParaAtualizar.name = usuario.name;
+                usuarioParaAtualizar.email = usuario.email;
 
-                    _usuarioRepository.Update(usuarioParaAtualizar);
-                    return httpResponse.Response(HttpStatusCode.OK, null, "OK");
-                }
+                _usuarioRepository.Update(usuarioParaAtualizar);
+                return httpResponse.Response(HttpStatusCode.OK, null, "OK");
+            }
                 
-                return httpResponse.Response(HttpStatusCode.NotFound, null, "User not found!");
-            }
-            catch (Exception ex)
+            return httpResponse.Response(HttpStatusCode.NotFound, null, "User not found!");
+        }
+
+        public HttpResponseMessage Remove(UsuariosViewModel usuario)
+        {
+            HttpResponse httpResponse = new HttpResponse();
+            
+            var usuarioRemove = _usuarioRepository.GetById(usuario.id).Result;
+            if (usuarioRemove != null)
             {
-                return httpResponse.Response(HttpStatusCode.InternalServerError, new StringContent(JsonSerializer.Serialize(ex.Message)), "Internal server error");
+                _usuarioRepository.Remove(usuarioRemove);
+                return httpResponse.Response(HttpStatusCode.OK, null, "OK");
             }
+
+            return httpResponse.Response(HttpStatusCode.NotFound, null, "User not found!");
         }
 
         private async Task<Usuarios> GetByEmail(string email)
