@@ -4,6 +4,7 @@ using Application.Login.ViewModel;
 using Application.Mapping;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Login.Entities;
 using Infra.Data.Context;
 using Infra.Data.Repository.Login;
 using Microsoft.AspNetCore.Http;
@@ -21,9 +22,38 @@ namespace Tests.Login
     public class LoginControllerTest
     {
         private readonly ITestOutputHelper _output;
+        private readonly LoginRepository _loginRepository;
+        private readonly LoginServices _loginServices;
+        private readonly Presentation.Controllers.Login _loginController;
         public LoginControllerTest(ITestOutputHelper output)
         {
             _output = output;
+            _loginRepository = LoginRepositoryStub();
+            var config = configIMapper();
+            var mapperMock = config.CreateMapper();
+
+            _loginServices = new LoginServices(_loginRepository, mapperMock);
+            _loginController = new Presentation.Controllers.Login(_loginServices);
+        }
+
+        private LoginRepository LoginRepositoryStub()
+        {
+            AppSettingsMock appSettingsMock = new AppSettingsMock();
+            var options = appSettingsMock.OptionsDatabaseStub();
+            var dbContext = new ApplicationDbContext(options);
+            var configurationMock = appSettingsMock.configurationMockStub();
+
+            return new LoginRepository(dbContext, configurationMock.Object);
+        }
+
+        private MapperConfiguration configIMapper()
+        {
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<LoginEntryViewModel, LoginEntry>();
+                cfg.CreateMap<LoginEntry, LoginEntryViewModel>();
+            });
+
+            return config;
         }
 
         [Fact]
@@ -31,28 +61,15 @@ namespace Tests.Login
         {
             _output.WriteLine("Should call LoginController");
 
-            AppSettingsMock appSettingsMock = new AppSettingsMock();
-            var configurationMock = appSettingsMock.configurationMockStub();
-            var options = appSettingsMock.OptionsDatabaseStub();
-
-            using (var dbContext = new ApplicationDbContext(options))
+            var loginEntry = new LoginEntryViewModel()
             {
-                var loginRepository = new LoginRepository(dbContext, configurationMock.Object);
-                var mapper = new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<ViewModelToDomainMappingProfile>()));
-                var loginService = new LoginServices(loginRepository, mapper);
+                email = "fer@gmail.com",
+                password = "123456"
+            };
 
-                var loginController = new Presentation.Controllers.Login(loginService);
+            var result = await _loginController.LoginEntry(loginEntry);
 
-                var loginEntry = new LoginEntryViewModel()
-                {
-                    email = "fer@gmail.com",
-                    password = "123456"
-                };
-
-                var result = await loginController.LoginEntry(loginEntry);
-
-                Assert.NotNull(result);
-            }
+            Assert.NotNull(result);
         }
 
         [Fact]
@@ -60,31 +77,18 @@ namespace Tests.Login
         {
             _output.WriteLine("Should return the status StatusCodes.Status403Forbidden");
 
-            AppSettingsMock appSettingsMock = new AppSettingsMock();
-            var configurationMock = appSettingsMock.configurationMockStub();
-            var options = appSettingsMock.OptionsDatabaseStub();
-
-            using (var dbContext = new ApplicationDbContext(options))
+            var loginEntry = new LoginEntryViewModel()
             {
-                var loginRepository = new LoginRepository(dbContext, configurationMock.Object);
-                var mapper = new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<ViewModelToDomainMappingProfile>()));
-                var loginService = new LoginServices(loginRepository, mapper);
+                email = "fer@gmail.com",
+                password = "123456"
+            };
 
-                var loginController = new Presentation.Controllers.Login(loginService);
-
-                var loginEntry = new LoginEntryViewModel()
-                {
-                    email = "fer@gmail.com",
-                    password = "123456"
-                };
-
-                var result = await loginController.LoginEntry(loginEntry);
+            var result = await _loginController.LoginEntry(loginEntry);
                 
-                Assert.NotNull(result);
-                if (result is ObjectResult objectResult)
-                {
-                    Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
-                }
+            Assert.NotNull(result);
+            if (result is ObjectResult objectResult)
+            {
+                Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
             }
         }
 
@@ -93,31 +97,18 @@ namespace Tests.Login
         {
             _output.WriteLine("Should return the status Status400BadRequest if e-mail is missing.");
 
-            AppSettingsMock appSettingsMock = new AppSettingsMock();
-            var configurationMock = appSettingsMock.configurationMockStub();
-            var options = appSettingsMock.OptionsDatabaseStub();
-
-            using (var dbContext = new ApplicationDbContext(options))
+            var loginEntry = new LoginEntryViewModel()
             {
-                var loginRepository = new LoginRepository(dbContext, configurationMock.Object);
-                var mapper = new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<ViewModelToDomainMappingProfile>()));
-                var loginService = new LoginServices(loginRepository, mapper);
+                email = "",
+                password = "123456"
+            };
 
-                var loginController = new Presentation.Controllers.Login(loginService);
+            var result = await _loginController.LoginEntry(loginEntry);
 
-                var loginEntry = new LoginEntryViewModel()
-                {
-                    email = "",
-                    password = "123456"
-                };
-
-                var result = await loginController.LoginEntry(loginEntry);
-
-                Assert.NotNull(result);
-                if (result is ObjectResult objectResult)
-                {
-                    Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);
-                }
+            Assert.NotNull(result);
+            if (result is ObjectResult objectResult)
+            {
+                Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);
             }
         }
 
@@ -126,31 +117,18 @@ namespace Tests.Login
         {
             _output.WriteLine("Should return the status Status400BadRequest if password is missing.");
 
-            AppSettingsMock appSettingsMock = new AppSettingsMock();
-            var configurationMock = appSettingsMock.configurationMockStub();
-            var options = appSettingsMock.OptionsDatabaseStub();
-
-            using (var dbContext = new ApplicationDbContext(options))
+            var loginEntry = new LoginEntryViewModel()
             {
-                var loginRepository = new LoginRepository(dbContext, configurationMock.Object);
-                var mapper = new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<ViewModelToDomainMappingProfile>()));
-                var loginService = new LoginServices(loginRepository, mapper);
+                email = "fer@gmail.com",
+                password = ""
+            };
 
-                var loginController = new Presentation.Controllers.Login(loginService);
+            var result = await _loginController.LoginEntry(loginEntry);
 
-                var loginEntry = new LoginEntryViewModel()
-                {
-                    email = "fer@gmail.com",
-                    password = ""
-                };
-
-                var result = await loginController.LoginEntry(loginEntry);
-
-                Assert.NotNull(result);
-                if (result is ObjectResult objectResult)
-                {
-                    Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);
-                }
+            Assert.NotNull(result);
+            if (result is ObjectResult objectResult)
+            {
+                Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);
             }
         }
 
@@ -159,31 +137,18 @@ namespace Tests.Login
         {
             _output.WriteLine("Should return the status 200OK if ok.");
 
-            AppSettingsMock appSettingsMock = new AppSettingsMock();
-            var configurationMock = appSettingsMock.configurationMockStub();
-            var options = appSettingsMock.OptionsDatabaseStub();
-
-            using (var dbContext = new ApplicationDbContext(options))
+            var loginEntry = new LoginEntryViewModel()
             {
-                var loginRepository = new LoginRepository(dbContext, configurationMock.Object);
-                var mapper = new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<ViewModelToDomainMappingProfile>()));
-                var loginService = new LoginServices(loginRepository, mapper);
+                email = "fernando@gmail.com",
+                password = "123456"
+            };
 
-                var loginController = new Presentation.Controllers.Login(loginService);
+            var result = await _loginController.LoginEntry(loginEntry);
 
-                var loginEntry = new LoginEntryViewModel()
-                {
-                    email = "fernando@gmail.com",
-                    password = "123456"
-                };
-
-                var result = await loginController.LoginEntry(loginEntry);
-
-                Assert.NotNull(result);
-                if (result is ObjectResult objectResult)
-                {
-                    Assert.Equal(StatusCodes.Status200OK, objectResult.StatusCode);
-                }
+            Assert.NotNull(result);
+            if (result is ObjectResult objectResult)
+            {
+                Assert.Equal(StatusCodes.Status200OK, objectResult.StatusCode);
             }
         }
     }

@@ -19,9 +19,9 @@ namespace Presentation.Controllers
             _usuarioServices = usuarioServices;
         }
 
-        [HttpGet]
         [Authorize]
         [Route("GetList")]
+        [HttpGet]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(UnauthorizedResult))]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<UsuariosViewModel>))]
         public async Task<IActionResult> GetList()
