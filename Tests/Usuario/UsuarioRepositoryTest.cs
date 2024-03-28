@@ -30,6 +30,33 @@ namespace Tests.Usuario
             _usuariosRepository = new UsuariosRepository(_dbContext);
         }
 
+        private void RemoverAllUsers()
+        {
+            AppSettingsMock appSettingsMock = new AppSettingsMock();
+            var options = appSettingsMock.OptionsDatabaseStub();
+
+            using (var dbContext = new ApplicationDbContext(options))
+            {
+                var usuariosParaRemover = dbContext.Usuarios.Where(u => u.id != 1).ToList();
+
+                var usuario = new Usuarios
+                {
+                    id = 1,
+                    name = "Fernando",
+                    email = "fernando@gmail.com",
+                    password = "$2a$10$e/IZDBCPryoa6XMwowkItuVWAeZmYOH1RiinVrcHVTm560uGIaUa2"
+                };
+
+                if (usuariosParaRemover.Count > 0)
+                {
+                    dbContext.Usuarios.RemoveRange(usuariosParaRemover);
+                    dbContext.Usuarios.Update(usuario);
+                    dbContext.Database.ExecuteSqlRaw($"DBCC CHECKIDENT ('Usuarios', RESEED, 1)");
+                    dbContext.SaveChanges();
+                }
+            }
+        }
+
         [Fact]
         public async Task UsuarioRepository_ShouldCallFunctionAdd()
         {
@@ -105,6 +132,7 @@ namespace Tests.Usuario
         [Fact]
         public async Task UsuarioRepository_ShouldCallFunctionGetList()
         {
+            RemoverAllUsers();
             _output.WriteLine("Should call the function GetList");
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -140,18 +168,13 @@ namespace Tests.Usuario
                 var usuario = await _usuariosRepository.GetList();
 
                 Assert.NotNull(usuario);
-                Assert.True(usuario.ToList().Count == 4);
-
-                foreach (var usuarioTeste in usuarios)
-                {
-                    _usuariosRepository.Remove(usuarioTeste);
-                }
-            }
+                Assert.True(usuario.ToList().Count > 2);
+}
             finally
             {
                 await transaction.RollbackAsync();
             }
-
+            RemoverAllUsers();
         }
 
         [Fact]

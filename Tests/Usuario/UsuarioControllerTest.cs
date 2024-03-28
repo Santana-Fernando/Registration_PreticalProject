@@ -173,6 +173,7 @@ namespace Tests.Usuario
         [Fact]
         public void UsuarioController_shouldReturn200IfOk()
         {
+            RemoverAllUsers();
             _output.WriteLine("Should return 200 if Register OK");
 
             UsuariosViewModel usuariosViewModel = new UsuariosViewModel() { 
@@ -187,7 +188,6 @@ namespace Tests.Usuario
             {
                 Assert.Equal(StatusCodes.Status200OK, objectResult.StatusCode);
             }
-            RemoverAllUsers();
         }
 
         [Fact]

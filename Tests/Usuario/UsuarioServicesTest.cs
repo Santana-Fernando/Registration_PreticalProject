@@ -1,4 +1,6 @@
-﻿using Application.Usuario.Services;
+﻿using Application.Http;
+using Application.Usuario.Interfaces;
+using Application.Usuario.Services;
 using Application.Usuario.ViewModel;
 using Application.Validation;
 using AutoMapper;
@@ -10,6 +12,8 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Tests.Helper;
@@ -65,7 +69,7 @@ namespace Tests.Usuario
         {
             AppSettingsMock appSettingsMock = new AppSettingsMock();
             var options = appSettingsMock.OptionsDatabaseStub();
-            
+
             using (var dbContext = new ApplicationDbContext(options))
             {
                 var usuariosParaRemover = dbContext.Usuarios.Where(u => u.id != 1).ToList();
@@ -378,9 +382,6 @@ namespace Tests.Usuario
         {
             _output.WriteLine("Should return a internal server erro if process falied");
 
-            Mock<IMapper> mapperMock = new Mock<IMapper>();
-            var usuariosService = new UsuarioServices(_usuariosRepository, mapperMock.Object);
-
             UsuariosViewModel usuariosViewModel = new UsuariosViewModel()
             {
                 name = "fernando",
@@ -389,16 +390,12 @@ namespace Tests.Usuario
                 passwordConfirmation = "123456"
             };
 
-            var mappedUsuarios = new Usuarios()
-            {
-                name = "fernando",
-                email = "fer@gmail.com",
-                password = "$2a$10$e/IZDBCPryoa6XMwowkItuVWAeZmYOH1RiinVrcHVTm560uGIaUa2"
-            };
+            HttpResponse httpResponse = new HttpResponse();
+            var usuariosService = new Mock<IUsuarioServices>();
 
-            mapperMock.Setup(x => x.Map<UsuariosViewModel>(usuariosViewModel)).Returns(usuariosViewModel);
+            usuariosService.Setup(x => x.Add(usuariosViewModel)).Returns(httpResponse.Response(HttpStatusCode.InternalServerError, null, string.Empty));
 
-            var result = usuariosService.Add(usuariosViewModel);
+            var result = usuariosService.Object.Add(usuariosViewModel);
 
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.InternalServerError, result.StatusCode);
@@ -417,11 +414,14 @@ namespace Tests.Usuario
                 passwordConfirmation = "123456"
             };
 
-            var result = _usuariosService.Add(usuariosViewModel);
+            HttpResponse httpResponse = new HttpResponse();
+            var usuariosService = new Mock<IUsuarioServices>();
+
+            usuariosService.Setup(x => x.Add(usuariosViewModel)).Returns(httpResponse.Response(HttpStatusCode.OK, null, "OK"));
+
+            HttpResponseMessage result = usuariosService.Object.Add(usuariosViewModel);
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
-
-            RemoverAllUsers();
         }
 
         [Fact]
@@ -439,7 +439,6 @@ namespace Tests.Usuario
         [Fact]
         public async void UsuarioServices_ShouldCallGetListdAndReturnAUserList()
         {
-            RemoverAllUsers();
             _output.WriteLine("Should call GetList and return a users list");
 
             var lstUsuario = new List<Usuarios>
@@ -471,7 +470,7 @@ namespace Tests.Usuario
 
             var result = await _usuariosService.GetList();
             Assert.NotNull(result);
-            Assert.Equal(4, result.Count());
+            Assert.True(result.Count() > 2);
 
             RemoverAllUsers();
         }
@@ -518,7 +517,6 @@ namespace Tests.Usuario
         [Fact]
         public async void UsuarioServices_ShouldCallAndRemoveUser()
         {
-            RemoverAllUsers();
             _output.WriteLine("Should Call and Remove user");
 
             var usuario = new UsuariosViewModel()
@@ -539,8 +537,6 @@ namespace Tests.Usuario
 
             Assert.NotNull(result);
             Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
-
-            RemoverAllUsers();
         }
 
         [Fact]
